@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Robot Model Viewer - Fab.com Model Yükleyici</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            max-width: 400px;
+            z-index: 100;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            margin: 0 0 15px 0;
+            font-size: 24px;
+            color: #4fc3f7;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .instructions {
+            font-size: 14px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            color: #e0e0e0;
+            background: rgba(79, 195, 247, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #4fc3f7;
+        }
+        
+        .file-upload {
+            margin: 20px 0;
+        }
+        
+        .upload-area {
+            border: 2px dashed #4fc3f7;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(79, 195, 247, 0.05);
+        }
+        
+        .upload-area:hover {
+            background: rgba(79, 195, 247, 0.15);
+            border-color: #64b5f6;
+        }
+        
+        .upload-area.dragover {
+            background: rgba(79, 195, 247, 0.25);
+            border-color: #90caf9;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #e0e0e0;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(79, 195, 247, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(79, 195, 247, 0.6);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(79, 195, 247, 0.6);
+        }
+        
+        #status {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+            font-size: 13px;
+            color: #a5d6a7;
+        }
+        
+        #status.error {
+            background: rgba(244, 67, 54, 0.2);
+            border-left-color: #f44336;
+            color: #ef9a9a;
+        }
+        
+        #status.warning {
+            background: rgba(255, 152, 0, 0.2);
+            border-left-color: #ff9800;
+            color: #ffcc80;
+        }
+        
+        .model-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(79, 195, 247, 0.1);
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
+        
+        .model-info.visible {
+            display: block;
+        }
+        
+        .model-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .model-info-label {
+            color: #b0bec5;
+        }
+        
+        .model-info-value {
+            color: #4fc3f7;
+            font-weight: 600;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            z-index: 200;
+            display: none;
+        }
+        
+        .loading.visible {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #4fc3f7;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .example-models {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 152, 0, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid #ff9800;
+        }
+        
+        .example-models h3 {
+            font-size: 14px;
+            color: #ffcc80;
+            margin-bottom: 10px;
+        }
+        
+        .example-models p {
+            font-size: 12px;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Model Yükleniyor...</p>
+    </div>
+    
+    <div id="container"></div>
+    
+    <div id="info">
+        <h1>
+            <span>🤖</span>
+            <span>3D Robot Model Viewer</span>
+        </h1>
+        
+        <div class="instructions">
+            <strong>📦 Fab.com'dan Model Yükleme:</strong><br>
+            1. Fab.com'dan robot modelini indirin (.glb, .gltf)<br>
+            2. Dosyayı sürükle-bırak yapın veya yükle butonuna tıklayın<br>
+            3. Model otomatik döner ve kontrol edilebilir!
+        </div>
+        
+        <div class="file-upload">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <p style="color: #e0e0e0; margin-bottom: 10px;">
+                    <strong>3D Model Yükle</strong>
+                </p>
+                <p style="color: #b0bec5; font-size: 12px;">
+                    GLB, GLTF, FBX veya OBJ formatı
+                </p>
+                <input type="file" id="fileInput" accept=".glb,.gltf,.fbx,.obj">
+            </div>
+        </div>
+        
+        <div class="model-info" id="modelInfo">
+            <div class="model-info-item">
+                <span class="model-info-label">Dosya Adı:</span>
+                <span class="model-info-value" id="fileName">-</span>
+            </div>
+            <div class="model-info-item">
+                <span class="model-info-label">Boyut:</span>
+                <span class="model-info-value" id="fileSize">-</span>
+            </div>
+            <div class="model-info-item">
+                <span class="model-info-label">Format:</span>
+                <span class="model-info-value" id="fileFormat">-</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="slider-container">
+                <label>Dönme Hızı: <span id="speedValue">1.0</span>x</label>
+                <input type="range" id="speedSlider" min="0" max="3" step="0.1" value="1">
+            </div>
+            
+            <div class="slider-container">
+                <label>Model Ölçeği: <span id="scaleValue">1.0</span>x</label>
+                <input type="range" id="scaleSlider" min="0.1" max="5" step="0.1" value="1">
+            </div>
+            
+            <div class="btn-group">
+                <button onclick="toggleRotation()">⏯️ Döndür</button>
+                <button onclick="toggleWireframe()">🔲 Wireframe</button>
+            </div>
+            
+            <button onclick="resetCamera()">📷 Kamerayı Sıfırla</button>
+            <button onclick="exportAsImage()">📸 Ekran Görüntüsü Al</button>
+        </div>
+        
+        <div class="example-models">
+            <h3>💡 Örnek Modeller:</h3>
+            <p>
+                • <a href="https://www.fab.com" target="_blank" style="color: #4fc3f7;">Fab.com</a> - Ücretli/Ücretsiz modeller<br>
+                • <a href="https://sketchfab.com" target="_blank" style="color: #4fc3f7;">Sketchfab</a> - Ücretsiz modeller<br>
+                • GLB/GLTF formatı en iyi çalışır
+            </p>
+        </div>
+        
+        <div id="status">Model yüklemeyi bekliyor...</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let loadedModel = null;
+        let isRotating = true;
+        let rotationSpeed = 0.01;
+        let wireframeMode = false;
+        
+        // Kamera kontrolü
+        let cameraAngle = { theta: Math.PI / 4, phi: Math.PI / 4 };
+        let cameraDistance = 5;
+        let isDragging = false;
+        let previousMouse = { x: 0, y: 0 };
+        
+        // GLTFLoader için gerekli
+        let GLTFLoader;
+        
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0e1a);
+            scene.fog = new THREE.FogExp2(0x0a0e1a, 0.05);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            updateCameraPosition();
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                preserveDrawingBuffer: true // Screenshot için
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Işıklandırma
+            setupLights();
+            
+            // Zemin
+            createFloor();
+            
+            // Placeholder robot (kullanıcı model yükleyene kadar)
+            createPlaceholderRobot();
+            
+            // Mouse events
+            setupMouseEvents();
+            
+            // GLTF Loader'ı yükle
+            loadGLTFLoader();
+            
+            // Animasyon başlat
+            animate();
+        }
+        
+        function loadGLTFLoader() {
+            // GLTFLoader'ı dinamik olarak yükle
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
+            script.onload = () => {
+                GLTFLoader = THREE.GLTFLoader;
+                updateStatus('✅ Hazır! Model yükleyebilirsiniz');
+            };
+            script.onerror = () => {
+                updateStatus('⚠️ GLTF Loader yüklenemedi. Sayfa yenileniyor...', 'warning');
+                setTimeout(() => location.reload(), 2000);
+            };
+            document.head.appendChild(script);
+        }
+        
+        function setupLights() {
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            mainLight.position.set(5, 10, 5);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 2048;
+            mainLight.shadow.mapSize.height = 2048;
+            scene.add(mainLight);
+            
+            const fillLight = new THREE.PointLight(0x4fc3f7, 0.5);
+            fillLight.position.set(-5, 5, -5);
+            scene.add(fillLight);
+            
+            const rimLight = new THREE.PointLight(0x764ba2, 0.4);
+            rimLight.position.set(0, 5, -5);
+            scene.add(rimLight);
+        }
+        
+        function createFloor() {
+            const geometry = new THREE.PlaneGeometry(20, 20);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x1a1a2e,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const floor = new THREE.Mesh(geometry, material);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            floor.position.y = -1;
+            scene.add(floor);
+            
+            const gridHelper = new THREE.GridHelper(20, 20, 0x4fc3f7, 0x2a2a3e);
+            gridHelper.position.y = -0.99;
+            scene.add(gridHelper);
+        }
+        
+        function createPlaceholderRobot() {
+            const group = new THREE.Group();
+            
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x2196f3,
+                metalness: 0.6,
+                roughness: 0.4
+            });
+            
+            // Basit robot placeholder
+            const bodyGeo = new THREE.BoxGeometry(1, 1.5, 0.8);
+            const body = new THREE.Mesh(bodyGeo, material);
+            body.position.y = 0.75;
+            body.castShadow = true;
+            group.add(body);
+            
+            const headGeo = new THREE.SphereGeometry(0.5, 32, 32);
+            const head = new THREE.Mesh(headGeo, material);
+            head.position.y = 1.8;
+            head.castShadow = true;
+            group.add(head);
+            
+            loadedModel = group;
+            scene.add(group);
+        }
+        
+        function setupMouseEvents() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            
+            // Click to upload
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    loadModelFile(e.target.files[0]);
+                }
+            });
+            
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    loadModelFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // Camera controls
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMouse = { x: e.clientX, y: e.clientY };
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMouse.x;
+                    const deltaY = e.clientY - previousMouse.y;
+                    
+                    cameraAngle.theta += deltaX * 0.005;
+                    cameraAngle.phi -= deltaY * 0.005;
+                    cameraAngle.phi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraAngle.phi));
+                    
+                    updateCameraPosition();
+                    previousMouse = { x: e.clientX, y: e.clientY };
+                }
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                cameraDistance += e.deltaY * 0.01;
+                cameraDistance = Math.max(2, Math.min(20, cameraDistance));
+                updateCameraPosition();
+            });
+            
+            // Sliders
+            document.getElementById('speedSlider').addEventListener('input', (e) => {
+                rotationSpeed = parseFloat(e.target.value) * 0.01;
+                document.getElementById('speedValue').textContent = e.target.value;
+            });
+            
+            document.getElementById('scaleSlider').addEventListener('input', (e) => {
+                const scale = parseFloat(e.target.value);
+                if (loadedModel) {
+                    loadedModel.scale.set(scale, scale, scale);
+                }
+                document.getElementById('scaleValue').textContent = e.target.value;
+            });
+            
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function loadModelFile(file) {
+            const fileName = file.name;
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            const fileExt = fileName.split('.').pop().toLowerCase();
+            
+            // Model bilgilerini göster
+            document.getElementById('fileName').textContent = fileName;
+            document.getElementById('fileSize').textContent = fileSize + ' MB';
+            document.getElementById('fileFormat').textContent = fileExt.toUpperCase();
+            document.getElementById('modelInfo').classList.add('visible');
+            
+            // Loading göster
+            document.getElementById('loading').classList.add('visible');
+            updateStatus('Model yükleniyor...', 'warning');
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const arrayBuffer = e.target.result;
+                
+                if (fileExt === 'glb' || fileExt === 'gltf') {
+                    loadGLTFModel(arrayBuffer, fileName);
+                } else {
+                    updateStatus('❌ Sadece GLB/GLTF formatı destekleniyor', 'error');
+                    document.getElementById('loading').classList.remove('visible');
+                }
+            };
+            
+            reader.onerror = function() {
+                updateStatus('❌ Dosya okunamadı', 'error');
+                document.getElementById('loading').classList.remove('visible');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function loadGLTFModel(arrayBuffer, fileName) {
+            if (!GLTFLoader) {
+                updateStatus('❌ GLTF Loader henüz yüklenmedi', 'error');
+                return;
+            }
+            
+            const loader = new GLTFLoader();
+            
+            // ArrayBuffer'dan yükle
+            loader.parse(arrayBuffer, '', (gltf) => {
+                // Eski modeli kaldır
+                if (loadedModel) {
+                    scene.remove(loadedModel);
+                }
+                
+                loadedModel = gltf.scene;
+                
+                // Model'i merkeze al ve boyutlandır
+                const box = new THREE.Box3().setFromObject(loadedModel);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 2 / maxDim;
+                
+                loadedModel.scale.multiplyScalar(scale);
+                loadedModel.position.sub(center.multiplyScalar(scale));
+                
+                // Shadow ayarları
+                loadedModel.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                
+                scene.add(loadedModel);
+                
+                // Loading gizle
+                document.getElementById('loading').classList.remove('visible');
+                updateStatus('✅ Model başarıyla yüklendi!');
+                
+                // Animasyon varsa çalıştır
+                if (gltf.animations && gltf.animations.length > 0) {
+                    const mixer = new THREE.AnimationMixer(loadedModel);
+                    gltf.animations.forEach((clip) => {
+                        mixer.clipAction(clip).play();
+                    });
+                }
+                
+            }, undefined, (error) => {
+                console.error('Model yükleme hatası:', error);
+                updateStatus('❌ Model yüklenemedi: ' + error.message, 'error');
+                document.getElementById('loading').classList.remove('visible');
+            });
+        }
+        
+        function updateCameraPosition() {
+            camera.position.x = cameraDistance * Math.sin(cameraAngle.phi) * Math.cos(cameraAngle.theta);
+            camera.position.y = cameraDistance * Math.cos(cameraAngle.phi);
+            camera.position.z = cameraDistance * Math.sin(cameraAngle.phi) * Math.sin(cameraAngle.theta);
+            camera.lookAt(0, 0, 0);
+        }
+        
+        function toggleRotation() {
+            isRotating = !isRotating;
+        }
+        
+        function toggleWireframe() {
+            wireframeMode = !wireframeMode;
+            if (loadedModel) {
+                loadedModel.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material.wireframe = wireframeMode;
+                    }
+                });
+            }
+        }
+        
+        function resetCamera() {
+            cameraAngle = { theta: Math.PI / 4, phi: Math.PI / 4 };
+            cameraDistance = 5;
+            updateCameraPosition();
+        }
+        
+        function exportAsImage() {
+            renderer.render(scene, camera);
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            
+            const link = document.createElement('a');
+            link.download = 'robot-model-screenshot.png';
+            link.href = dataURL;
+            link.click();
+            
+            updateStatus('📸 Ekran görüntüsü indirildi!');
+        }
+        
+        function updateStatus(message, type = '') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = type;
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isRotating && loadedModel) {
+                loadedModel.rotation.y += rotationSpeed;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Başlat
+        init();
+    </script>
+</body>
+</html>
